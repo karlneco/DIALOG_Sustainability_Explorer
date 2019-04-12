@@ -69,7 +69,7 @@ var zcolorscale = d3.scale.linear()
   .interpolate(d3.interpolateLab);
 
 // load csv file and create the chart
-
+  // the 'getQueryVariable('data')' gets the query parameter "data" to find the file
 d3.csv(getQueryVariable('data'), function(data) {
 
   // slickgrid needs each data element to have an id
@@ -77,7 +77,8 @@ d3.csv(getQueryVariable('data'), function(data) {
 
 
   pc_graph = d3.parcoords()("#graph")
-    .data(data.filter(function(key) {return key!== "id";}))
+    .data(data)
+    //.hideAxis(["id"])
     .alpha(0.6)
     .mode("queue")
     .brushMode("1D-axes")  // enable brushing
@@ -102,7 +103,9 @@ change_color("WWR");
 
 
   // setting up grid
-  var column_keys = d3.keys(data[0]);
+  var column_keys = d3.keys(data[0]).filter(function(d) {
+    return d != "id";
+  });
   var columns = column_keys.map(function(key,i) {
     return {
       id: key,
