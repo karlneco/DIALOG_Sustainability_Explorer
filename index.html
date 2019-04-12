@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+
+
+
+<!-- SlickGrid -->
+<link rel="stylesheet" href="slickgrid/slick.grid.css" type="text/css"/>
+<link rel="stylesheet" href="slickgrid/jquery-ui-1.8.16.custom.css" type="text/css"/>
+<link rel="stylesheet" href="slickgrid/graphs.css" type="text/css"/>
+<link rel="stylesheet" href="slickgrid/slick.pager.css" type="text/css"/>
+<script src="slickgrid/jquery-1.7.min.js"></script>
+<script src="slickgrid/jquery.event.drag-2.0.min.js"></script>
+<script src="slickgrid/slick.core.js"></script>
+<script src="slickgrid/slick.grid.js"></script>
+<script src="slickgrid/slick.pager.js"></script>
+<script src="slickgrid/slick.dataview.js"></script>
+<!-- End SlickGrid -->
+
+<meta charset="utf-8">
+<link rel="stylesheet" href="paracords.css" type="text/css" />
+<link rel="stylesheet" href="grid.css" type="text/css" />
+<link rel="stylesheet" href="DIALOG.css" type="text/css" />
+<body>
+
+  
+<p>Lansdowne Parcel 8 Preliminary Parametric Energy Analysis</p>
+<img src="Parcel8.png" style="height:300px;">
+<p><b><u>Construction Assembly Descriptions</u></b><br>
+Windows: Triple Pane IGUs: U-0.28, Double Pane Argon IGUs: U-0.33, Double Pane Air IGUs: U-0.38<br>
+Walls: Curtainwall Spandrel: R-6, Rainscreen w/ thermal clips: R-20, 50/50 mix: R-13<br>
+<br>
+<i>Note: EUI values do not consider mechanical system inefficiencies or energy savings measures or domestic hot water energy consumption <br>
+Ventilation heat recovery is considered.  Daylighting energy reductions are considered.
+</i>
+
+<script src="d3.min.js"></script>
+<script src="d3.DIALOGparcoords.js"></script>
+<script src="sylvester.js"></script>
+<script src="underscore.js"></script>
+<script src="underscore.math.js"></script>
+<script src="lib/divgrid.js"></script>
+
+<link rel="stylesheet" type="text/css" href="d3.parcoords.css">
+
+<div id="graph" class="parcoords" style="width:950px;height:450px"></div>
+<div id="grid"></div>
+<div id="pager"></div>
+
+
+<script>
+
+function getQueryVariable(variable)
+{
+       var query = window.location.search.substring(1);
+       var vars = query.split("&");
+       for (var i=0;i<vars.length;i++) {
+               var pair = vars[i].split("=");
+               if(pair[0] == variable){return pair[1];}
+       }
+       return(false);
+}
+
+// interact with this variable from a javascript console
+var pc_graph;
+
+// color scale for zscores
+var zcolorscale = d3.scale.linear()
+  .domain([-2,-0.5,0.5,2])
+  .range(["red", "orange", "green", "blue"])
+  .interpolate(d3.interpolateLab);
+
+// load csv file and create the chart
+
+d3.csv(getQueryVariable('data'), function(data) {
+
+  // slickgrid needs each data element to have an id
+  data.forEach(function(d,i) { d.id = d.id || i; });
+
+
+  pc_graph = d3.parcoords()("#graph")
+    .data(data.filter(function(key) {return key!== "id";}))
+    .alpha(0.6)
+    .mode("queue")
+    .brushMode("1D-axes")  // enable brushing
+    .reorderable()
+    .bundlingStrength(0.5)
+    .smoothness(.15)
+    .nullValueSeparator("topbottom")
+    .interactive();  // command line mode
+
+//what is this doing??
+change_color("WWR");
+
+
+  // click label to activate coloring
+  pc_graph.svg.selectAll(".dimension")
+    .style("font-size", "12px")
+    .style("font-weight", "bold")
+    .selectAll(".label")
+    .on("click", change_color)
+    .style("font-size", "14px")
+    .style("font-weight", "normal");
+
+
+  // setting up grid
+  var column_keys = d3.keys(data[0]);
+  var columns = column_keys.map(function(key,i) {
+    return {
+      id: key,
+      name: key,
+      field: key,
+      sortable: true
+    }
+  });
+
+  var options = {
+    enableCellNavigation: true,
+    enableColumnReorder: false,
+    multiColumnSort: false,
+    forceFitColumns: true
+  };
+
+  var dataView = new Slick.Data.DataView();
+  var grid = new Slick.Grid("#grid", dataView, columns, options);
+  var pager = new Slick.Controls.Pager(dataView, grid, $("#pager"));
+
+  // wire up model events to drive the grid
+  dataView.onRowCountChanged.subscribe(function (e, args) {
+    grid.updateRowCount();
+    grid.render();
+  });
+
+  dataView.onRowsChanged.subscribe(function (e, args) {
+    grid.invalidateRows(args.rows);
+    grid.render();
+  });
+
+  // column sorting
+  var sortcol = column_keys[0];
+  var sortdir = 1;
+
+  function comparer(a, b) {
+    var x = a[sortcol], y = b[sortcol];
+    return (x == y ? 0 : (x > y ? 1 : -1));
+  }
+  
+  // click header to sort grid column
+  grid.onSort.subscribe(function (e, args) {
+    sortdir = args.sortAsc ? 1 : -1;
+    sortcol = args.sortCol.field;
+
+    if ($.browser.msie && $.browser.version <= 8) {
+      dataView.fastSort(sortcol, args.sortAsc);
+    } else {
+      dataView.sort(comparer, args.sortAsc);
+    }
+  });
+
+  // highlight row in chart
+  grid.onMouseEnter.subscribe(function(e,args) {
+    // Get row number from grid
+    var grid_row = grid.getCellFromEvent(e).row;
+
+    // Get the id of the item referenced in grid_row
+    var item_id = grid.getDataItem(grid_row).id;
+    var d = pc_graph.brushed() || data;
+
+    // Get the element position of the id in the data object
+    elementPos = d.map(function(x) {return x.id; }).indexOf(item_id);
+
+    // Highlight that element in the parallel coordinates graph
+    pc_graph.highlight([d[elementPos]]);
+  });
+
+  grid.onMouseLeave.subscribe(function(e,args) {
+    pc_graph.unhighlight();
+  });
+
+  // fill grid with data
+  gridUpdate(data);
+
+  // update grid on brush
+  pc_graph.on("brush", function(d) {
+    gridUpdate(d);
+  });
+
+  function gridUpdate(data) {
+    dataView.beginUpdate();
+    dataView.setItems(data);
+    dataView.endUpdate();
+  };
+
+
+
+
+});
+
+
+// update color
+function change_color(dimension) {
+
+ 	 pc_graph.svg.selectAll(".dimension")
+	.selectAll(".label")
+    	.style("font-weight", "normal")
+	.style("font-size", "12px")
+    	.filter(function(d) { return d == dimension; })
+    	.style("font-weight", "bold")
+	.style("font-size", "16px");
+
+
+	  	pc_graph.color(zcolor(pc_graph.data(),dimension))
+		.bundleDimension(dimension)
+		.render();
+
+
+}//end update color
+
+
+// return color function based on plot and dimension
+function zcolor(col, dimension) {
+  var z = zscore(_(col).pluck(dimension).map(parseFloat))
+  return function(d) { return zcolorscale(z(d[dimension])) }
+};
+
+// color by zscore
+function zscore(col) {
+  var n = col.length,
+      mean = _(col).mean(),
+      sigma = _(col).stdDeviation();
+  return function(d) {
+    return (d-mean)/sigma;
+  };
+};
+
+</script>
