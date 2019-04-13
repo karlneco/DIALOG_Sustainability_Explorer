@@ -3,16 +3,16 @@
 
 
 <!-- SlickGrid -->
-<link rel="stylesheet" href="slickgrid/slick.grid.css" type="text/css"/>
-<link rel="stylesheet" href="slickgrid/jquery-ui-1.8.16.custom.css" type="text/css"/>
-<link rel="stylesheet" href="slickgrid/graphs.css" type="text/css"/>
-<link rel="stylesheet" href="slickgrid/slick.pager.css" type="text/css"/>
-<script src="slickgrid/jquery-1.7.min.js"></script>
-<script src="slickgrid/jquery.event.drag-2.0.min.js"></script>
-<script src="slickgrid/slick.core.js"></script>
-<script src="slickgrid/slick.grid.js"></script>
-<script src="slickgrid/slick.pager.js"></script>
-<script src="slickgrid/slick.dataview.js"></script>
+<link rel="stylesheet" href="lib/slickgrid/slick.grid.css" type="text/css"/>
+<link rel="stylesheet" href="lib/slickgrid/jquery-ui-1.8.16.custom.css" type="text/css"/>
+<link rel="stylesheet" href="lib/slickgrid/graphs.css" type="text/css"/>
+<link rel="stylesheet" href="lib/slickgrid/slick.pager.css" type="text/css"/>
+<script src="lib/slickgrid/jquery-1.7.min.js"></script>
+<script src="lib/slickgrid/jquery.event.drag-2.0.min.js"></script>
+<script src="lib/slickgrid/slick.core.js"></script>
+<script src="lib/slickgrid/slick.grid.js"></script>
+<script src="lib/slickgrid/slick.pager.js"></script>
+<script src="lib/slickgrid/slick.dataview.js"></script>
 <!-- End SlickGrid -->
 
 <meta charset="utf-8">
@@ -23,7 +23,7 @@
 
   
 <p>Lansdowne Parcel 8 Preliminary Parametric Energy Analysis</p>
-<img src="Parcel8.png" style="height:300px;">
+<img src="Parcel8.png" id="thumbnail" style="height:300px;">
 <p><b><u>Construction Assembly Descriptions</u></b><br>
 Windows: Triple Pane IGUs: U-0.28, Double Pane Argon IGUs: U-0.33, Double Pane Air IGUs: U-0.38<br>
 Walls: Curtainwall Spandrel: R-6, Rainscreen w/ thermal clips: R-20, 50/50 mix: R-13<br>
@@ -32,21 +32,21 @@ Walls: Curtainwall Spandrel: R-6, Rainscreen w/ thermal clips: R-20, 50/50 mix: 
 Ventilation heat recovery is considered.  Daylighting energy reductions are considered.
 </i>
 
-<script src="d3.min.js"></script>
-<script src="d3.DIALOGparcoords.js"></script>
-<script src="sylvester.js"></script>
-<script src="underscore.js"></script>
-<script src="underscore.math.js"></script>
+<script src="https://d3js.org/d3.v5.min.js"></script>
+<script src="lib/parcoords.standalone.js"></script>
+<script src="lib/sylvester.js"></script>
+<script src="lib/underscore.js"></script>
+<script src="lib/underscore.math.js"></script>
 <script src="lib/divgrid.js"></script>
 
-<link rel="stylesheet" type="text/css" href="d3.parcoords.css">
+<link rel="stylesheet" type="text/css" href="parcoords.css">
 
 <div id="graph" class="parcoords" style="width:950px;height:450px"></div>
 <div id="grid"></div>
 <div id="pager"></div>
 
 
-<script>
+<script id="brushing">
 
 function getQueryVariable(variable)
 {
@@ -62,35 +62,42 @@ function getQueryVariable(variable)
 // interact with this variable from a javascript console
 var pc_graph;
 
-// color scale for zscores
-var zcolorscale = d3.scale.linear()
-  .domain([-2,-0.5,0.5,2])
-  .range(["red", "orange", "green", "blue"])
-  .interpolate(d3.interpolateLab);
+//set the thumbnail
+document.getElementById('thumbnail').src = "Data//" + getQueryVariable('data') + "//thumbnail.png";
+
+
+//set up the parcoords graph
+pc_graph = ParCoords()("#graph")
+  .alpha(0.6)
+  .mode("queue");
+
+
+//color scales
+  var zcolorscale = d3.scaleLinear()
+    .domain([-2,-0.5,0.5,2])
+    .range(["red", "orange", "green", "blue"])
+    .interpolate(d3.interpolateLab);
+
 
 // load csv file and create the chart
-  // the 'getQueryVariable('data')' gets the query parameter "data" to find the file
-d3.csv(getQueryVariable('data'), function(data) {
 
-  // slickgrid needs each data element to have an id
-  data.forEach(function(d,i) { d.id = d.id || i; });
+// the 'getQueryVariable('data')' gets the query parameter "data" to find the file
+var csvFile = "Data//" + getQueryVariable('data') + "//Data.csv"
+data = d3.csv(csvFile).then(function(data) {
+  data.forEach(function(d,i){ d.id = d.id || i; });
 
-
-  pc_graph = d3.parcoords()("#graph")
+  //set up the graph data link
+  pc_graph
     .data(data)
-    //.hideAxis(["id"])
-    .alpha(0.6)
-    .mode("queue")
-    .brushMode("1D-axes")  // enable brushing
+    .hideAxis(["id"])
+    .render()
     .reorderable()
-    .bundlingStrength(0.5)
-    .smoothness(.15)
-    .nullValueSeparator("topbottom")
-    .interactive();  // command line mode
+    .brushMode("1D-axes")
+    .smoothness(0.15)
+    .nullValueSeparator("topbottom");
 
-//what is this doing??
-change_color("WWR");
-
+  //colorize the graph based on the 'WWR' stat
+  change_color("WWR");
 
   // click label to activate coloring
   pc_graph.svg.selectAll(".dimension")
@@ -102,7 +109,7 @@ change_color("WWR");
     .style("font-weight", "normal");
 
 
-  // setting up grid
+  // setting up grid - hide the 'id' column
   var column_keys = d3.keys(data[0]).filter(function(d) {
     return d != "id";
   });
@@ -122,6 +129,7 @@ change_color("WWR");
     forceFitColumns: true
   };
 
+  //create the grid and pager
   var dataView = new Slick.Data.DataView();
   var grid = new Slick.Grid("#grid", dataView, columns, options);
   var pager = new Slick.Controls.Pager(dataView, grid, $("#pager"));
@@ -192,13 +200,9 @@ change_color("WWR");
     dataView.endUpdate();
   };
 
-
-
-
 });
 
-
-// update color
+// update color on click
 function change_color(dimension) {
 
  	 pc_graph.svg.selectAll(".dimension")
@@ -213,8 +217,6 @@ function change_color(dimension) {
 	  	pc_graph.color(zcolor(pc_graph.data(),dimension))
 		.bundleDimension(dimension)
 		.render();
-
-
 }//end update color
 
 
