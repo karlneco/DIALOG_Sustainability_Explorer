@@ -2,7 +2,9 @@ body, html{
     font-size: 12px;
 }
 
-div.project_title {
+div.project_header {
+    grid-column-start: 1;
+    grid-column-end: 3;
     font-size: 30px;
     font-family: Verdana, Geneva, Tahoma, sans-serif;
     padding-top: 5px;
@@ -11,16 +13,33 @@ div.project_title {
     color: #002f6c;
     font-weight: bold;
 }
-#project_div {
+#project_seperator {
     color: #999;
 }
 #project_phase {
     color: #00a3e0;
 }
 
-#thumbnail_img{
-   float: right;
-   top: 200px;
-   position: fixed;
-   margin-left: 80%;
+div.data_content{
+    grid-template-columns: 80% auto;
+}
+
+div.thumbnail_img{
+    text-align: center;
+    margin: auto
+}
+#info_panel{
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    border: #999 1px solid;
+    box-shadow: 3px 3px 2px #999;
+    height: 90%;
+    margin: 0 30px;
+    padding: 10px;
+}
+.dimension_name{
+    font-size: 16px;
+    font-weight: bold;
+}
+#info_panel p{
+    font-size: 11px;
 }

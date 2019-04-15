@@ -17,13 +17,8 @@
 <link rel="stylesheet" href="grid.css" type="text/css" />
 <link rel="stylesheet" href="DIALOG.css" type="text/css" />
 <body>
-<div>
-  <img src="images\logo.png"/>
-  <div style="width:100%;height: 6px; background-color: #abad00"/>
-  <div class="project_title">
-    <span id="project_name"></span> <span id="project_div"> | </span><span id="project_phase"></span>
-  </div>
-</div>
+<img src="images\logo.png"/>
+<div style="width:100%;height: 6px; background-color: #abad00"/>
 
 
 
@@ -39,12 +34,25 @@
 <link rel="stylesheet" type="text/css" href="parcoords.css">
 <!-- end -->
 
-<div style="width: 80%; position:relative; top:40px; float: left">
+<div class="data_content" style="display: grid; top: 150px">
+  <div class="project_header">
+      <span id="project_name"></span> <span id="project_seperator"> | </span><span id="project_phase"></span>
+  </div>
   <div id="graph" class="parcoords" style="height:450px;"></div>
-  <div id="grid"></div>
-  <div id="pager"></div>
+  <div class="thumbnail_img"><img src="Parcel8.png" id="thumbnail" style="height:300px;"></div>
+  <div>
+    <div id="grid"></div>
+    <div id="pager"></div>
+  </div>
+  <div>
+    <div id="info_panel">
+      <b>INSTRUCTIONS:</b><br/>
+      To see an explanation of a measure, click on the corresponding Axis name in the graph.  This will "colorize"
+      the data according to that measure and present an explanation of the measure as it relates to the highlighted 
+      row in the table.
+    </div>
+  </div>
 </div>
-<div id="thumbnail_img"><img src="Parcel8.png" id="thumbnail" style="height:300px;"></div>
 
 
 <script id="brushing">
@@ -65,14 +73,13 @@ function getQueryVariable(variable)
 var pc_graph;
 
 //set the thumbnail
-document.getElementById('thumbnail').src = "Data//" + getQueryVariable('data') + "//thumbnail.png";
+$("#thumbnail").attr("src", "Data//" + getQueryVariable('data') + "//thumbnail.png");
 
 //projet info data
 //var project_info = JSON.parse("Data//" + getQueryVariable('data') + "//project.json")
-$.getJSON("Data//" + getQueryVariable('data') + "//project.json", function(data) {
-  
-  document.getElementById("project_name").innerHTML = data.project_name; 
-  document.getElementById("project_phase").innerHTML = data.project_phase;  
+$.getJSON("Data//" + getQueryVariable('data') + "//project.json", function(data) {  
+  $("#project_name").html(data.project_name); 
+  $("#project_phase").html(data.project_phase);  
 });
 
 
@@ -226,7 +233,25 @@ function change_color(dimension) {
 
 	  	pc_graph.color(zcolor(pc_graph.data(),dimension))
 		.bundleDimension(dimension)
-		.render();
+    .render();
+    
+    //this part populates the info_panel
+    $.ajax({
+    url:'Data//common//' + encodeURI(dimension) + '.html',
+    type:'HEAD',
+    error: function()
+    {
+      $("#info_panel").load("Data//common//no_data.html");
+    },
+    success: function()
+    {
+        $("#info_panel").load(url);
+    }
+});
+    $("#info_panel").load("Data//common//" + encodeURI(dimension) + ".html");
+
+
+
 }//end update color
 
 
