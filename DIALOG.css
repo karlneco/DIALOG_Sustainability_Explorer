@@ -43,3 +43,13 @@ div.thumbnail_img{
 #info_panel p{
     font-size: 11px;
 }
+.header{
+    display: flex;
+}
+.instructions{
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    margin:0 auto;
+    padding-left: 50px;
+    padding-top: 20px
+
+}
