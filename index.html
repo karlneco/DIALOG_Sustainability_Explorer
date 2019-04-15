@@ -1,7 +1,4 @@
 <!DOCTYPE html>
-
-
-
 <!-- SlickGrid -->
 <link rel="stylesheet" href="lib/slickgrid/slick.grid.css" type="text/css"/>
 <link rel="stylesheet" href="lib/slickgrid/jquery-ui-1.8.16.custom.css" type="text/css"/>
@@ -20,18 +17,18 @@
 <link rel="stylesheet" href="grid.css" type="text/css" />
 <link rel="stylesheet" href="DIALOG.css" type="text/css" />
 <body>
+<div>
+  <img src="images\logo.png"/>
+  <div style="width:100%;height: 6px; background-color: #abad00"/>
+  <div class="project_title">
+    <span id="project_name"></span> <span id="project_div"> | </span><span id="project_phase"></span>
+  </div>
+</div>
 
-  
-<p>Lansdowne Parcel 8 Preliminary Parametric Energy Analysis</p>
-<img src="Parcel8.png" id="thumbnail" style="height:300px;">
-<p><b><u>Construction Assembly Descriptions</u></b><br>
-Windows: Triple Pane IGUs: U-0.28, Double Pane Argon IGUs: U-0.33, Double Pane Air IGUs: U-0.38<br>
-Walls: Curtainwall Spandrel: R-6, Rainscreen w/ thermal clips: R-20, 50/50 mix: R-13<br>
-<br>
-<i>Note: EUI values do not consider mechanical system inefficiencies or energy savings measures or domestic hot water energy consumption <br>
-Ventilation heat recovery is considered.  Daylighting energy reductions are considered.
-</i>
 
+
+
+<!--D3v5 and ParCoords-es -->
 <script src="https://d3js.org/d3.v5.min.js"></script>
 <script src="lib/parcoords.standalone.js"></script>
 <script src="lib/sylvester.js"></script>
@@ -40,10 +37,14 @@ Ventilation heat recovery is considered.  Daylighting energy reductions are cons
 <script src="lib/divgrid.js"></script>
 
 <link rel="stylesheet" type="text/css" href="parcoords.css">
+<!-- end -->
 
-<div id="graph" class="parcoords" style="width:950px;height:450px"></div>
-<div id="grid"></div>
-<div id="pager"></div>
+<div style="width: 80%; position:relative; top:40px; float: left">
+  <div id="graph" class="parcoords" style="height:450px;"></div>
+  <div id="grid"></div>
+  <div id="pager"></div>
+</div>
+<div id="thumbnail_img"><img src="Parcel8.png" id="thumbnail" style="height:300px;"></div>
 
 
 <script id="brushing">
@@ -59,11 +60,20 @@ function getQueryVariable(variable)
        return(false);
 }
 
+
 // interact with this variable from a javascript console
 var pc_graph;
 
 //set the thumbnail
 document.getElementById('thumbnail').src = "Data//" + getQueryVariable('data') + "//thumbnail.png";
+
+//projet info data
+//var project_info = JSON.parse("Data//" + getQueryVariable('data') + "//project.json")
+$.getJSON("Data//" + getQueryVariable('data') + "//project.json", function(data) {
+  
+  document.getElementById("project_name").innerHTML = data.project_name; 
+  document.getElementById("project_phase").innerHTML = data.project_phase;  
+});
 
 
 //set up the parcoords graph

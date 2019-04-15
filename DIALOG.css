@@ -1,3 +1,26 @@
 body, html{
     font-size: 12px;
 }
+
+div.project_title {
+    font-size: 30px;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    padding-top: 5px;
+}
+#project_name {
+    color: #002f6c;
+    font-weight: bold;
+}
+#project_div {
+    color: #999;
+}
+#project_phase {
+    color: #00a3e0;
+}
+
+#thumbnail_img{
+   float: right;
+   top: 200px;
+   position: fixed;
+   margin-left: 80%;
+}
