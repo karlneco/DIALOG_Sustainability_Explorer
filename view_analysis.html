@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<!-- SlickGrid -->
+<link rel="stylesheet" href="lib/slickgrid/slick.grid.css" type="text/css"/>
+<link rel="stylesheet" href="lib/slickgrid/jquery-ui-1.8.16.custom.css" type="text/css"/>
+<link rel="stylesheet" href="lib/slickgrid/graphs.css" type="text/css"/>
+<link rel="stylesheet" href="lib/slickgrid/slick.pager.css" type="text/css"/>
+<script src="lib/slickgrid/jquery-1.7.min.js"></script>
+<script src="lib/slickgrid/jquery.event.drag-2.0.min.js"></script>
+<script src="lib/slickgrid/slick.core.js"></script>
+<script src="lib/slickgrid/slick.grid.js"></script>
+<script src="lib/slickgrid/slick.pager.js"></script>
+<script src="lib/slickgrid/slick.dataview.js"></script>
+<!-- End SlickGrid -->
+
+<meta charset="utf-8">
+<link rel="stylesheet" href="paracords.css" type="text/css" />
+<link rel="stylesheet" href="grid.css" type="text/css" />
+<link rel="stylesheet" href="DIALOG.css" type="text/css" />
+<body>
+  <div class="header">
+<div><img src="images\logo.png"/></div>
+<div class="instructions">
+  <b>INSTRUCTIONS:</b><br/>
+  To see an explanation of a measure, click on the corresponding Axis name in the graph.  This will "colorize"
+  the data according to that measure and present an explanation of the measure as it relates to the highlighted 
+  row in the table.
+</div>
+</div>
+<div style="width:100%;height: 6px; background-color: #abad00"/>
+
+
+
+
+<!--D3v5 and ParCoords-es -->
+<script src="https://d3js.org/d3.v5.min.js"></script>
+<script src="lib/parcoords.standalone.js"></script>
+<script src="lib/sylvester.js"></script>
+<script src="lib/underscore.js"></script>
+<script src="lib/underscore.math.js"></script>
+<script src="lib/divgrid.js"></script>
+
+<link rel="stylesheet" type="text/css" href="parcoords.css">
+<!-- end -->
+
+<div class="data_content" style="display: grid; top: 150px">
+  <div class="project_header">
+      <span id="project_name"></span> <span id="project_seperator"> | </span><span id="project_phase"></span>
+  </div>
+  <div id="graph" class="parcoords" style="height:450px;"></div>
+  <div class="thumbnail_img"><img src="Parcel8.png" id="thumbnail" style="height:300px;"></div>
+  <div>
+    <div id="grid"></div>
+    <div id="pager"></div>
+  </div>
+  <div>
+    <div id="info_panel">
+    </div>
+  </div>
+</div>
+
+
+<script id="brushing">
+
+function getQueryVariable(variable)
+{
+       var query = window.location.search.substring(1);
+       var vars = query.split("&");
+       for (var i=0;i<vars.length;i++) {
+               var pair = vars[i].split("=");
+               if(pair[0] == variable){return pair[1];}
+       }
+       return(false);
+}
+
+
+// interact with this variable from a javascript console
+var pc_graph;
+
+//set the thumbnail
+$("#thumbnail").attr("src", "Data//" + getQueryVariable('data') + "//thumbnail.png");
+
+//projet info data
+//var project_info = JSON.parse("Data//" + getQueryVariable('data') + "//project.json")
+$.getJSON("Data//" + getQueryVariable('data') + "//project.json", function(data) {  
+  $("#project_name").html(data.project_name); 
+  $("#project_phase").html(data.project_phase);  
+});
+
+
+//set up the parcoords graph
+pc_graph = ParCoords()("#graph")
+  .alpha(0.6)
+  .mode("queue");
+
+
+//color scales
+  var zcolorscale = d3.scaleLinear()
+    .domain([-2,-0.5,0.5,2])
+    .range(["red", "orange", "green", "blue"])
+    .interpolate(d3.interpolateLab);
+
+
+// load csv file and create the chart
+
+// the 'getQueryVariable('data')' gets the query parameter "data" to find the file
+var csvFile = "Data//" + getQueryVariable('data') + "//Data.csv"
+data = d3.csv(csvFile).then(function(data) {
+  data.forEach(function(d,i){ d.id = d.id || i; });
+
+  //set up the graph data link
+  pc_graph
+    .data(data)
+    .hideAxis(["id"])
+    .render()
+    .reorderable()
+    .brushMode("1D-axes")
+    .smoothness(0.15)
+    .nullValueSeparator("topbottom");
+
+  //colorize the graph based on the 'WWR' stat
+  change_color("WWR");
+
+  // click label to activate coloring
+  pc_graph.svg.selectAll(".dimension")
+    .style("font-size", "12px")
+    .style("font-weight", "bold")
+    .selectAll(".label")
+    .on("click", change_color)
+    .style("font-size", "14px")
+    .style("font-weight", "normal");
+
+
+  // setting up grid - hide the 'id' column
+  var column_keys = d3.keys(data[0]).filter(function(d) {
+    return d != "id";
+  });
+  var columns = column_keys.map(function(key,i) {
+    return {
+      id: key,
+      name: key,
+      field: key,
+      sortable: true
+    }
+  });
+
+  var options = {
+    enableCellNavigation: true,
+    enableColumnReorder: false,
+    multiColumnSort: false,
+    forceFitColumns: true
+  };
+
+  //create the grid and pager
+  var dataView = new Slick.Data.DataView();
+  var grid = new Slick.Grid("#grid", dataView, columns, options);
+  var pager = new Slick.Controls.Pager(dataView, grid, $("#pager"));
+
+  // wire up model events to drive the grid
+  dataView.onRowCountChanged.subscribe(function (e, args) {
+    grid.updateRowCount();
+    grid.render();
+  });
+
+  dataView.onRowsChanged.subscribe(function (e, args) {
+    grid.invalidateRows(args.rows);
+    grid.render();
+  });
+
+  // column sorting
+  var sortcol = column_keys[0];
+  var sortdir = 1;
+
+  function comparer(a, b) {
+    var x = a[sortcol], y = b[sortcol];
+    return (x == y ? 0 : (x > y ? 1 : -1));
+  }
+  
+  // click header to sort grid column
+  grid.onSort.subscribe(function (e, args) {
+    sortdir = args.sortAsc ? 1 : -1;
+    sortcol = args.sortCol.field;
+
+    if ($.browser.msie && $.browser.version <= 8) {
+      dataView.fastSort(sortcol, args.sortAsc);
+    } else {
+      dataView.sort(comparer, args.sortAsc);
+    }
+  });
+
+  // highlight row in chart
+  grid.onMouseEnter.subscribe(function(e,args) {
+    // Get row number from grid
+    var grid_row = grid.getCellFromEvent(e).row;
+
+    // Get the id of the item referenced in grid_row
+    var item_id = grid.getDataItem(grid_row).id;
+    var d = pc_graph.brushed() || data;
+
+    // Get the element position of the id in the data object
+    elementPos = d.map(function(x) {return x.id; }).indexOf(item_id);
+
+    // Highlight that element in the parallel coordinates graph
+    pc_graph.highlight([d[elementPos]]);
+  });
+
+  grid.onMouseLeave.subscribe(function(e,args) {
+    pc_graph.unhighlight();
+  });
+
+  // fill grid with data
+  gridUpdate(data);
+
+  // update grid on brush
+  pc_graph.on("brush", function(d) {
+    gridUpdate(d);
+  });
+
+  function gridUpdate(data) {
+    dataView.beginUpdate();
+    dataView.setItems(data);
+    dataView.endUpdate();
+  };
+
+});
+
+// update color on click
+function change_color(dimension) {
+
+ 	 pc_graph.svg.selectAll(".dimension")
+	.selectAll(".label")
+    	.style("font-weight", "normal")
+	.style("font-size", "12px")
+    	.filter(function(d) { return d == dimension; })
+    	.style("font-weight", "bold")
+	.style("font-size", "16px");
+
+
+	  	pc_graph.color(zcolor(pc_graph.data(),dimension))
+		.bundleDimension(dimension)
+    .render();
+    
+    //this part populates the info_panel
+    $.ajax({
+    url:'Data//common//' + encodeURI(dimension) + '.html',
+    type:'HEAD',
+    error: function()
+    {
+      $("#info_panel").load("Data//common//no_data.html");
+    },
+    success: function()
+    {
+        $("#info_panel").load(url);
+    }
+});
+    $("#info_panel").load("Data//common//" + encodeURI(dimension) + ".html");
+
+
+
+}//end update color
+
+
+// return color function based on plot and dimension
+function zcolor(col, dimension) {
+  var z = zscore(_(col).pluck(dimension).map(parseFloat))
+  return function(d) { return zcolorscale(z(d[dimension])) }
+};
+
+// color by zscore
+function zscore(col) {
+  var n = col.length,
+      mean = _(col).mean(),
+      sigma = _(col).stdDeviation();
+  return function(d) {
+    return (d-mean)/sigma;
+  };
+};
+
+</script>
