@@ -1,4 +1,4 @@
-HP Fraction,Window U-Value,Window SHGC,Wall R-Value,Glazing Ratio,Cooling kWh-m2,Heating kWh-m2,DHW kWh-m2,Lighting kWh-m2,TEDI kWh-m2,EUI kWh-m2
+HP Fraction,Window U-Value,Window SHGC,Wall R-Value,Glazing Ratio,Cooling (kWh/m2),Heating (kWh/m2),DHW (kWh/m2),Lighting (kWh/m2),TEDI (kWh/m2),EUI (kWh/m2)
 0,0.28,0.31,6,0.3,9.837296516,42.6398213,9.9112,18.98729883,38.37583917,123.5995283
 0,0.32,0.31,6,0.3,9.592172828,44.15951982,9.9112,18.96628287,39.74356783,124.8125154
 0,0.36,0.31,6,0.3,9.4909567,45.58192659,9.9112,18.96628693,41.02373393,126.1296981
